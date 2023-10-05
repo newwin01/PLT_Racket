@@ -29,7 +29,7 @@
 (test (lookup-fundef 'identify (list (fundef 'identify 'x (id 'x)) (fundef 'twice 'x (add (id 'x) (id 'x))))) (fundef 'identify 'x (id 'x)))
 (test (lookup-fundef 'twice (list (fundef 'identify 'x (id 'x)) (fundef 'twice 'x (add (id 'x) (id 'x))))) (fundef 'twice 'x (add (id 'x) (id 'x))))
 ;Error occuring test case
-(test (lookup-fundef 'a (list (fundef 'identify 'x (id 'x)) (fundef 'twice 'x (add (id 'x) (id 'x))))) "unknown function")
+(test/exn (lookup-fundef 'a (list (fundef 'identify 'x (id 'x)) (fundef 'twice 'x (add (id 'x) (id 'x))))) "unknown function")
 
 ; [Contract] sexp -> F1WAE
 ; [Purpose] Receive the experssion written based on BNF and converted to Abstract syntax representation for intepreter
@@ -38,6 +38,7 @@
     [(? number?) (num sexp)]
     [(list '+ l r) (add (parse l)(parse r))]
     [(list '- l r) (sub (parse l)(parse r))]
+    [(list '* l r) (desugar l r)]
     [(list 'with (list i v) e) (with i (parse v) (parse e))]
     [(? symbol?) (id sexp)]
     [(list f a) (app f (parse a))]
@@ -46,6 +47,30 @@
 (test (parse '(+ 10 20)) (add (num 10) (num 20)))
 (test (parse '(- 10 20)) (sub (num 10) (num 20)))
 (test (parse '{with {x 1} {with {y 2} {+ y x}}}) (with 'x (num 1) (with 'y (num 2) (add (id 'y) (id 'x)))))
+
+; [Contract] number number -> F1WAE
+; [Purpose] Desugar sugared multiplication subexpression for interpreter
+(define (desugar multi count)
+  (cond
+    [(symbol? count) (error "Can't consume free identifer as multiplier")]
+    [ (or (= count 0) (= multi 0)) (num 0)]
+    [ (> count 0)
+     (if (= count 1) (add (parse multi) (parse 0)) (add (parse multi) (desugar multi (- count 1))))]
+    [ (< count 0)
+      (if (number? multi)
+          (if (= count -1) (add (parse (* multi -1)) (parse 0)) (add (parse (* multi -1)) (desugar multi (+ count 1))))
+          (error "I can only negate number")
+          )
+       ]
+    [else (error "desugar error")]
+    ))
+
+;[test]
+(test (parse '(* 1 2)) (add (num 1) (add (num 1) (num 0))))
+(test (parse '(* -6 3)) (add (num -6) (add (num -6) (add (num -6) (num 0)))))
+(test (parse '(* -7 -2)) (add (num 7) (add (num 7) (num 0))))
+(test (parse '(* 6 0)) (num 0))
+
 
 ;[Contract] sexp -> FunDef
 ;[Purpose] Translate deferring function definition of form of sexp with 'deffun keyword into real function definition, working with parser when sexp matches (list f a) form)
@@ -56,16 +81,6 @@
 ;[test]
 (test (parse-fd '{deffun (f x) {+ x 3}}) (fundef 'f 'x (add (id 'x) (num 3))))
 (test (list (parse-fd '(deffun (f x) {+ x 3})) (parse-fd '(deffun (f1 x) (- x 3)))) (list (fundef 'f 'x (add (id 'x) (num 3))) (fundef 'f1 'x (sub (id 'x) (num 3)))) )
-
-(define (subst f1wae idtf val)
-	(type-case F1WAE f1wae
-		[num (n) f1wae]
-		[add (l r) (add (subst l idtf val) (subst r idtf val))]
-		[sub (l r) (sub (subst l idtf val) (subst r idtf val))]
-		[with (i v e) (with i (subst v idtf val) (if (symbol=? i idtf) e
-                                                             (subst e idtf val)))]
-		[id (s) (if (symbol=? s idtf) (num val) f1wae)]
-		[app (f a)(app f	(subst a idtf val))]))
 
 ;[purpose] Type for Deferring substitution, storing the value that will be substituted
 (define-type DefrdSub
@@ -82,7 +97,7 @@
             [aSub      (i v saved)      (if (symbol=? i name) v (lookup name saved))]))
 ;[test]
 ;Error occuring test case
-(test (lookup 'a (mtSub)) "free identifier")
+(test/exn (lookup 'a (mtSub)) "free identifier")
 (test (lookup 'a (aSub 'a 10 (mtSub))) 10)
 (test (lookup 'y (aSub 'x 1 (aSub 'y 4 (mtSub)))) 4)
 
@@ -108,3 +123,19 @@
 (test (interp (add (num 10) (num 20)) (mtSub) (mtSub)) 30)
 (test (interp (parse '{f 1}) (list (parse-fd '{deffun (f x) {+ x 3}})) (mtSub)) 4)
 
+;[test for syntax sugar]
+(test (interp (parse '(* -6 3)) (mtSub) (mtSub))  -18)
+(test (interp (parse '(* 6 3)) (mtSub) (mtSub))  18)
+(test (interp (parse '(* -7 -3)) (mtSub) (mtSub))  21)
+(test (interp (parse '(* 8 -3)) (mtSub) (mtSub))  -24)
+(test (interp (parse '(* 1 0)) (mtSub) (mtSub)) 0)
+(test (interp (parse '(* 1 1)) (mtSub) (mtSub)) 1)
+
+; (1 Point) Q1. Which scope is supported for a free identifier in a function call in your implementation, static scope, dynamic scope or both?
+; In my implementation, static scope is supported.
+
+; (1 Point) Put the three test cases that show your answer for Q1 is correct. 
+
+(test/exn (interp (parse '{with {y 2} {f 10}}) (list (parse-fd '{deffun (f x) {+ y x}})) (mtSub)) "free identifier") ;Interpreting function body starts with only one substitution
+(test (interp (parse '{with {x 3} {f 10}}) (list (parse-fd '{deffun (f x) {+ 10 x}})) (mtSub)) 20)
+(test/exn (interp (parse '{with {n 5} {f 10}}) (list (parse-fd '{deffun {f p} n})) (mtSub)) "free identifier")

@@ -12,15 +12,15 @@
   [app (ftn FWAE?)(arg FWAE?)])
 
 (define (parse sexp)
-  (match sexp
-    [(? number?) (num sexp)]
-    [(list '+ l r) (add (parse l)(parse r))]
-    [(list '- l r) (sub (parse l)(parse r))]
-    [(list 'with (list i v) e)  (with  i (parse v) (parse e))]
-    [(? symbol?) (id sexp)]
-    [(list 'fun (list p) b) (fun p (parse b))]
-    [(list f a) (app (parse f) (parse a))]
-    [else (error 'parse "bad syntax: ~a" sexp)]))
+   (match sexp
+        [(? number?)                (num sexp)]
+        [(list '+ l r)              (add (parse l) (parse r))]
+        [(list '- l r)              (sub (parse l) (parse r))]
+        [(list 'with (list i v) e) (app (fun i (parse e)) (parse v))]
+        [(? symbol?)                (id sexp)]
+        [(list 'fun (list p) b)                 (fun p (parse b))]
+        [(list f a)                 (app (parse f) (parse a))]
+        [else                       (error 'parse "bad syntax: ~a" sexp)]))
 
 (test (parse '{{fun {x} {+ x 1}} 10})
                     (app (fun 'x (add (id 'x) (num 1))) (num 10)))
