@@ -1,35 +1,38 @@
 #lang plai
 
-(define-type FAE
+(define-type LFAE
 [num (n number?)]
-[add (lhs FAE?) (rhs FAE?)]
-[sub (lhs FAE?) (rhs FAE?)]
+[add (lhs LFAE?) (rhs LFAE?)]
+[sub (lhs LFAE?) (rhs LFAE?)]
 [id (name symbol?)]
-[fun (param symbol?) (body FAE?)]
-[app (fun-expr FAE?) (arg-expr FAE?)])
+[fun (param symbol?) (body LFAE?)]
+[app (fun-expr LFAE?) (arg-expr LFAE?)])
 
-(define-type FAE-Value
-[numV (n number?)]
-[closureV (param symbol?)
-(body FAE?)
-(ds DefrdSub?)])
+(define-type LFAE-Value
+        [numV         (n number?)]
+        [closureV    (param symbol?) (body LFAE?) (ds DefrdSub?)]
+        [exprV          (expr LFAE?) (ds DefrdSub?)
+                              (value (box/c (or/c false LFAE-Value?)))])
 
 (define-type DefrdSub
     [mtSub]
-    [aSub (name symbol?) (value FAE-Value?) (ds DefrdSub?)])
+    [aSub (name symbol?) (value LFAE-Value?) (ds DefrdSub?)])
 
-(define (num-op op) (lambda (x y) (num (op (num-n x) (num-n y))))) ; return function itself, contract will be the function
+(define (strict v)
+    (type-case LFAE-Value v
+        [exprV (expr ds v-box)
+                     (if (not (unbox v-box))    ;; box contains #f? Then evaluate expr as needed.
+                          (local [(define v (strict (interp expr ds)))]
+                              (begin (set-box! v-box v)
+                                           v))      ;; return v after evaluating it.
+                          (unbox v-box))] ;; just unbox to return the value that was already evaluated once.
+        [else v]))  ;; for numV or closureV
 
-(define num+ (num-op +))
-(define num- (num-op -))
-
-
-;; (define (num+ x y) (num (+ (num-n x) (num-n y))))
-;; (define (num- x y) (num (- (num-n y) (num-n y))))
-
-
-
-(num+ (num 3) (num 5))
+(define (num-op op x y)
+    (numV (op (numV-n (strict x))
+                        (numV-n (strict y)))))
+(define (num+ x y) (num-op + x y))
+(define (num- x y) (num-op - x y))
 
 
 ;(define (lookup name ds)
@@ -62,26 +65,26 @@
 (test (parse '{{fun {x} {+ x 1}} 10})
                     (app (fun 'x (add (id 'x) (num 1))) (num 10)))
 
-(define (interp fae ds)
-    (type-case FAE fae
+(define (interp lfae ds)
+    (type-case LFAE lfae
         [num   (n)      (numV n)]
        [add    (l r)    (num+ (interp l ds) (interp r ds))]
        [sub    (l r)    (num- (interp l ds) (interp r ds))]
        [id       (s)     (lookup s ds)]
        [fun     (p b)  (closureV p b ds)]
-       [app    (f a)   (local [(define f-val (interp f ds))
-                                      (define a-val (interp a ds))]
-                               (interp (closureV-body f-val)
-                                       (aSub (closureV-param f-val)
-                                                          a-val
-                                                          (closureV-ds f-val))))]))
+       [app (f a)
+             (local [(define f-val (strict (interp f ds)))
+                                 (define a-val (exprV a ds (box #f)))]
+                            (interp (closureV-body f-val)
+                                         (aSub (closureV-param f-val)
+                                                     a-val
+                                                     (closureV-ds f-val))))]))
 
 
 
 ;(test (interp (with 'x (num 5) (add (id 'x) (id 'x)))) (num 10))
 
 ;(test (interp (parse '(fun {a} {+ a a}))) (fun 'a (add (id 'a) (id 'a))))
-(test (interp (parse '{with {y 10} {fun {x} {+ y x}}}) (mtSub))
-        (closureV 'x (add (id 'y) (id 'x))        (aSub 'y (numV 10) (mtSub))))
+(interp (parse '{with {y 10} {fun {x} {+ y x}}}) (mtSub))
 
 (interp(parse '{with {x 3} {with {f {fun {y} {+ x y}}} {with {x 5} {f 4}}}}) (mtSub))
