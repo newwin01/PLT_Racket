@@ -1,5 +1,9 @@
 #lang plai
 
+;21900628 Jang Sechang
+;Time taken: 3 hours
+
+
 ;[purpose] Type for the function definition, indicates function name, argument name and body which is F1WAE type
 (define-type FunDef
   [fundef (fun-name symbol?)
@@ -17,6 +21,11 @@
 
 ;[Contract] symbol list-of-FunDef -> error or Fundef
 ;[Purpose] look up list the function definitions and return the definition of functions of input function names recursively
+;[test]
+;(test (lookup-fundef 'identify (list (fundef 'identify 'x (id 'x)) (fundef 'twice 'x (add (id 'x) (id 'x))))) (fundef 'identify 'x (id 'x)))
+;(test (lookup-fundef 'twice (list (fundef 'identify 'x (id 'x)) (fundef 'twice 'x (add (id 'x) (id 'x))))) (fundef 'twice 'x (add (id 'x) (id 'x))))
+;(test/exn (lookup-fundef 'a (list (fundef 'identify 'x (id 'x)) (fundef 'twice 'x (add (id 'x) (id 'x))))) "unknown function")
+
 (define (lookup-fundef name fundefs)
 	(cond
           [(empty? fundefs)
@@ -33,6 +42,10 @@
 
 ; [Contract] sexp -> F1WAE
 ; [Purpose] Receive the experssion written based on BNF and converted to Abstract syntax representation for intepreter
+; [test]
+;(test (parse '(+ 10 20)) (add (num 10) (num 20)))
+;(test (parse '(- 10 20)) (sub (num 10) (num 20)))
+;(test (parse '{with {x 1} {with {y 2} {+ y x}}}) (with 'x (num 1) (with 'y (num 2) (add (id 'y) (id 'x)))))
 (define (parse sexp)
   (match sexp
     [(? number?) (num sexp)]
@@ -50,6 +63,11 @@
 
 ; [Contract] number number -> F1WAE
 ; [Purpose] Desugar sugared multiplication subexpression for interpreter
+;[test]
+;(test (parse '(* 1 2)) (add (num 1) (add (num 1) (num 0))))
+;(test (parse '(* -6 3)) (add (num -6) (add (num -6) (add (num -6) (num 0)))))
+;(test (parse '(* -7 -2)) (add (num 7) (add (num 7) (num 0))))
+;(test (parse '(* 6 0)) (num 0))
 (define (desugar multi count)
   (cond
     [(symbol? count) (error "Can't consume free identifer as multiplier")]
@@ -74,6 +92,9 @@
 
 ;[Contract] sexp -> FunDef
 ;[Purpose] Translate deferring function definition of form of sexp with 'deffun keyword into real function definition, working with parser when sexp matches (list f a) form)
+;[test]
+;(test (parse-fd '{deffun (f x) {+ x 3}}) (fundef 'f 'x (add (id 'x) (num 3))))
+;(test (list (parse-fd '(deffun (f x) {+ x 3})) (parse-fd '(deffun (f1 x) (- x 3)))) (list (fundef 'f 'x (add (id 'x) (num 3))) (fundef 'f1 'x (sub (id 'x) (num 3)))) )
 (define (parse-fd sexp)
   (match sexp
     [(list 'deffun (list f x) b) (fundef f x (parse b))]))
@@ -91,6 +112,11 @@
 
 ;[Contract] symbol DefrdSub -> number or error
 ;[Purpose] lookup deferring cache and find corresponding value for the cache name, used for interpreter
+;[test]
+;(test/exn (lookup 'a (mtSub)) "free identifier")
+;(test (lookup 'a (aSub 'a 10 (mtSub))) 10)
+;(test (lookup 'y (aSub 'x 1 (aSub 'y 4 (mtSub)))) 4)
+
 (define (lookup name ds)
       (type-case DefrdSub ds
             [mtSub       ()                  (error 'lookup "free identifier")]
@@ -104,6 +130,10 @@
 
 ;[Contract] F1WAE list-of-FunDef DefrdSub -> number
 ;[Purpose] Using Abstract syntax representation, list of defined function, and Deferring cache, calculate the results
+;[test]
+;(test (interp (add (num 10) (num 20)) (mtSub) (mtSub)) 30)
+;(test (interp (parse '{f 1}) (list (parse-fd '{deffun (f x) {+ x 3}})) (mtSub)) 4)
+
 (define (interp f1wae fundefs ds)
  (type-case F1WAE f1wae
   [num  (n)      n]
