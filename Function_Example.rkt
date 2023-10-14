@@ -12,7 +12,8 @@
   [sub (lhs F1WAE?)(rhs F1WAE?)]
   [with (name symbol?)(named-expr F1WAE?)(body F1WAE?)]
   [id (name symbol?)]
-  [app (ftn symbol?)(arg F1WAE?)])
+  [app (ftn symbol?)(arg F1WAE?)]
+
 
 
 (define (lookup-fundef name fundefs)
@@ -62,3 +63,6 @@
                (fundef-arg-name a_fundef)(interp a fundefs))fundefs))]))
 
 (subst (app 'fn (with 'y (num 10) (add  (id 'y) (id 'x)))) 'x 1)
+
+
+(subst (fun 'x (id 'y)))
