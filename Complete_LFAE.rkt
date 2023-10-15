@@ -83,7 +83,7 @@
      [sub (l r)    (num- (interp l ds) (interp r ds))]
      [id  (s)     (lookup s ds)]
      [fun (p b)  (closureV p b ds)]
-     [app (f a)   (local [(define f-val (interp f ds))
+     [app (f a)   (local [(define f-val (strict (interp f ds)))
                           (define a-val (exprV a ds (vector #f)))]
                    (interp (closureV-body f-val)
                            (aSub (closureV-param f-val)
@@ -120,5 +120,25 @@
 (run '{{fun {f} {f 1}} {fun {x} {+ x 1}}} (mtSub))
 (run '{{fun {x} {+ x x}} {+ 1 {{fun {y} 2} 1}}} (mtSub))
 (run '{with {a {fun {f} {+ f f}}} {a 3}} (mtSub))
+
+(parse '{{fun {f} {f 1}} {fun {x} {+ x 1}} })
+
+(interp (parse '{fun {f} {f 1}}) (mtSub))
+
+(interp (app (id 'f) (num 1)) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub))) ; first execution
+
+(lookup 'f (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)))
+
+(strict (lookup 'f (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)))) ; second loop f-value
+
+(interp (add (id 'x) (num 1)) (aSub 'x (exprV (num 1) (mtSub) (vector #f)) (mtSub))) ; how?
+
+;current ds: (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub))
+;a-val: (aSub 'x (exprV (num 1) (aSub 'x (exprV (num 1) (mtSub) (vector #f))) (vector #f) (mtSub)) 
+;f-val (closureV 'f (app (id 'f) (num 1)) (mtSub))
+
+(interp (add (id 'x) (num 1)) (aSub 'x (exprV (num 1) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)) (vector #f)) (mtSub))) ;interp for second one
+
+(lookup 'x (aSub 'x (exprV (num 1) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)) (vector #f)) (mtSub)))
 
 ;(run '{{fun {x} x} {+ 1 {fun {y} 2}}} (mtSub)) ;; numV-n: contract violation ... [The interp is terminated with an error]
