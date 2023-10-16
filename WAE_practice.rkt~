@@ -41,5 +41,3 @@
 (test (subst (sub (id 'x) (num 1)) 'y 10)    (sub (id 'x) (num 1)))
 
 (test (subst (with 'x (id 'y) (id 'x)) 'x 10) (with 'x (id 'y) (id 'x)))
-
-(parse '(+ 1 2 ))
