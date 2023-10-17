@@ -95,19 +95,6 @@
 (define (run sexp ds)
      (interp (parse sexp) ds))
 
-;(run '{with {y 3} {{fun {x} {+ x y}} {+ 24 9 }}} (mtSub))
-
-(run '{with {x 3}
-{with {f {fun {y} {+ x y}}}
-{with {x 5}
-{f 4}}}} (mtSub)) ;should be 7 in static
-
-(parse '{with {y 3} {{fun {x} {+ x y}} {+ 24 9 }}})
-
-(run '{with {y 3} {{fun {x} {+ x y}} {+ 24 9 }}} (mtSub))
-
-(run '{with {z 3} {with {z 8} {{fun {x} {- z x}} 2}}} (mtSub))
-
 ;(run '{fun {y} {+ x y}} (mtSub))
 ;(run '{{fun {x} {+ 1 x}} 10} (mtSub))
 ;(run '{{fun {x} 0} {+ 1 {fun {y} 2}}} (mtSub))
@@ -130,29 +117,28 @@
 ;(run '{{fun {x} x} 1} (mtSub))
 ;(run '{{fun {x} x} {+ 1 {{fun {y} 2} 1}}} (mtSub))
 
-;(run '{{fun {f} {f 1}} {fun {x} {+ x 1}}} (mtSub))
-;(run '{{fun {x} {+ x x}} {+ 1 {{fun {y} 2} 1}}} (mtSub))
-;(run '{with {a {fun {f} {+ f f}}} {a 3}} (mtSub))
+(run '{{fun {f} {f 1}} {fun {x} {+ x 1}}} (mtSub))
+(run '{{fun {x} {+ x x}} {+ 1 {{fun {y} 2} 1}}} (mtSub))
+(run '{with {a {fun {f} {+ f f}}} {a 3}} (mtSub))
 
-;(parse '{{fun {f} {f 1}} {fun {x} {+ x 1}} })
+(parse '{{fun {f} {f 1}} {fun {x} {+ x 1}} })
 
-;(interp (parse '{fun {f} {f 1}}) (mtSub))
+(interp (parse '{fun {f} {f 1}}) (mtSub))
 
-;(interp (app (id 'f) (num 1)) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub))) ; first execution
+(interp (app (id 'f) (num 1)) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub))) ; first execution
 
-;(lookup 'f (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)))
+(lookup 'f (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)))
 
-;(strict (lookup 'f (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)))) ; second loop f-value
+(strict (lookup 'f (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)))) ; second loop f-value
 
-;(interp (add (id 'x) (num 1)) (aSub 'x (exprV (num 1) (mtSub) (vector #f)) (mtSub))) ; how?
+(interp (add (id 'x) (num 1)) (aSub 'x (exprV (num 1) (mtSub) (vector #f)) (mtSub))) ; how?
 
 ;current ds: (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub))
 ;a-val: (aSub 'x (exprV (num 1) (aSub 'x (exprV (num 1) (mtSub) (vector #f))) (vector #f) (mtSub)) 
 ;f-val (closureV 'f (app (id 'f) (num 1)) (mtSub))
 
-;(interp (add (id 'x) (num 1)) (aSub 'x (exprV (num 1) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)) (vector #f)) (mtSub))) ;interp for second one
+(interp (add (id 'x) (num 1)) (aSub 'x (exprV (num 1) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)) (vector #f)) (mtSub))) ;interp for second one
 
-;(lookup 'x (aSub 'x (exprV (num 1) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)) (vector #f)) (mtSub)))
+(lookup 'x (aSub 'x (exprV (num 1) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)) (vector #f)) (mtSub)))
 
 ;(run '{{fun {x} x} {+ 1 {fun {y} 2}}} (mtSub)) ;; numV-n: contract violation ... [The interp is terminated with an error]
-
