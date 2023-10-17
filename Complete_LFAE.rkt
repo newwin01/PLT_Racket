@@ -108,6 +108,8 @@
 
 (run '{with {z 3} {with {z 8} {{fun {x} {- z x}} 2}}} (mtSub))
 
+(interp (parse '{with {x 3} {with {f {fun {y} {+ x y}}} {with {x 5} {f 4}}}}) (mtSub))
+
 ;(run '{fun {y} {+ x y}} (mtSub))
 ;(run '{{fun {x} {+ 1 x}} 10} (mtSub))
 ;(run '{{fun {x} 0} {+ 1 {fun {y} 2}}} (mtSub))
