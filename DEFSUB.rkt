@@ -80,4 +80,7 @@
 
 (test (interp (parse '{f 1}) (list (parse-fd '{deffun (f x) {+ x 3}})) (mtSub)) 4)
 
-(test (interp (parse '{ with {x 4} {f 1}}) (list (parse-fd '{deffun (f x) {+ x 3}})) (mtSub)) 4) 
+(test (interp (parse '{ with {x 4} {f 1}}) (list (parse-fd '{deffun (f x) {+ x 3}})) (mtSub)) 4)
+
+
+(test (interp (parse '{ with {x 4} {f 1}}) (list (parse-fd '{deffun (f y) {+ x y}})) (mtSub)) 5) 
