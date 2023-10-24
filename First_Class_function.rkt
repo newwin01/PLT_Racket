@@ -18,7 +18,7 @@
     [mtSub]
     [aSub (name symbol?) (value FAE-Value?) (ds DefrdSub?)])
 
-(define (num-op op) (lambda (x y) (num (op (num-n x) (num-n y))))) ; return function itself, contract will be the function
+(define (num-op op) (lambda (x y) (numV (op (numV-n x) (numV-n y))))) ; return function itself, contract will be the function
 
 (define num+ (num-op +))
 (define num- (num-op -))
@@ -27,9 +27,6 @@
 ;; (define (num+ x y) (num (+ (num-n x) (num-n y))))
 ;; (define (num- x y) (num (- (num-n y) (num-n y))))
 
-
-
-(num+ (num 3) (num 5))
 
 
 ;(define (lookup name ds)
@@ -81,6 +78,7 @@
 ;(test (interp (with 'x (num 5) (add (id 'x) (id 'x)))) (num 10))
 
 ;(test (interp (parse '(fun {a} {+ a a}))) (fun 'a (add (id 'a) (id 'a))))
-;(test (interp (parse '{with {y 10} {fun {x} {+ y x}}}) (mtSub))
+;(test (interp (parse '{with {y 10} {fun {x} {+ y x}} }) (mtSub))
         ;(closureV 'x (add (id 'y) (id 'x))        (aSub 'y (numV 10) (mtSub))))
-
+(interp (parse '{with {y 10} { {fun {x} {+ y x}} 10} }) (mtSub))
+(interp (parse '{with {x 3} {with {f {fun {y} {+ x y}}} {with {x 5} {f 4}}}}) (mtSub))

@@ -1,26 +1,33 @@
 #lang plai
 
-; Type definition for abstract syntax tree of LFAE
-(define-type LFAE
+; Type definition for abstract syntax tree of RCFAE
+(define-type RCFAE
     [num    (n number?)]
-    [add     (lhs LFAE?) (rhs LFAE?)]
-    [sub     (lhs LFAE?) (rhs LFAE?)]
+    [add     (lhs RCFAE?) (rhs RCFAE?)]
+    [sub     (lhs RCFAE?) (rhs RCFAE?)]
+  [mul       (lhs RCFAE?) (rhs RCFAE?)]
     [id      (name symbol?)]
-    [fun      (param symbol?) (body LFAE?)]
-    [app     (ftn LFAE?) (arg LFAE?)])
+    [fun      (param symbol?) (body RCFAE?)]
+    [app     (ftn RCFAE?) (arg RCFAE?)]
+  [if0 (test-expr RCFAE?) (then-expr RCFAE?) (else-expr RCFAE?)]
+  [rec (name symbol?) (named-expr RCFAE?) (body RCFAE?)]
+  )
   
         
-; parse: sexp -> LFAE
-; purpose: to convert sexp to LFAE
+; parse: sexp -> RCFAE
+; purpose: to convert sexp to RCFAE
 (define (parse sexp)
    (match sexp
         [(? number?)                (num sexp)]
         [(list '+ l r)              (add (parse l) (parse r))]
         [(list '- l r)              (sub (parse l) (parse r))]
+     [(list '* l r) (mul (parse l) (parse r))]
         [(list 'with (list i v) e)  (app (fun i (parse e)) (parse v))]
         [(? symbol?)                (id sexp)]
         [(list 'fun (list p) b)                 (fun p (parse b))]
         [(list f a)                 (app (parse f) (parse a))]
+     [(list 'if0 te th el) (if0 (parse te) (parse th) (parse el))]
+     [(list 'rec (list rfn ne) body) (rec rfn (parse ne) (parse body))]
         [else                       (error 'parse "bad syntax: ~a" sexp)]))
 
 
@@ -34,19 +41,20 @@
 ; Type definition for deferred substitution
 (define-type DefrdSub
   [mtSub]
-  [aSub (name symbol?) (value LFAE-Value?) (ds DefrdSub?)])
+  [aSub (name symbol?) (value RCFAE-Value?) (ds DefrdSub?)]
+  [aRecSub (name symbol?) (value-box (box/c RCFAE-Value?)) (ds DefrdSub?)])
 
-; Type Defintion for LFAE-Value
-(define-type LFAE-Value
+; Type Defintion for RCFAE-Value
+(define-type RCFAE-Value
   [numV       (n number?)]
-  [closureV   (param symbol?) (body LFAE?) (ds DefrdSub?)]
-  [exprV      (expr LFAE?) (ds DefrdSub?) (value (vector/c (or/c false LFAE-Value?)))]) ; Use a vector for caching
+  [closureV   (param symbol?) (body RCFAE?) (ds DefrdSub?)]
+  [exprV      (expr RCFAE?) (ds DefrdSub?) (value (vector/c (or/c false RCFAE-Value?)))]) ; Use a vector for caching
 
 
-; strict: LFAE-Value -> LFAE-Value
+; strict: RCFAE-Value -> RCFAE-Value
 ; purpose: to interpret exprV expression to get a value in strictness points.
 (define (strict v)
-  (type-case LFAE-Value v
+  (type-case RCFAE-Value v
     [exprV (expr ds v-vec)
           (if (not (vector-ref v-vec 0))
               (local [(define v (strict (interp expr ds)))]
@@ -64,6 +72,11 @@
 
 (define num+ (num-op +))
 (define num- (num-op -))
+(define num* (num-op *))
+
+; numzero? :  RCFAE-Value -> boolean
+(define (numzero? n)
+    (zero? (numV-n n)))
 
 ; lookup: symbol DefrdSub -> FAE-Value
 ; purpose: to get a value for the given identifier (symbol)
@@ -72,25 +85,35 @@
     [mtSub ()           (error 'lookup "free identifier")]
     [aSub  (i v saved) (if(symbol=? i name)
                                 (strict v)             ;; if v is exprV (num ==> interp it
-                                (lookup name saved))]))
+                                (lookup name saved))]
+    [aRecSub (id val-box rest-ds)
+             (if (symbol=? id name)
+                 (unbox val-box)
+                 (lookup name rest-ds))]
+    ))
 
-; interp: LFAE DefrdSub -> LFAE-Value
-; purpose: to get LFAE-Value from LFAE
-(define (interp lfae ds)
-  (type-case LFAE lfae
+; interp: RCFAE DefrdSub -> RCFAE-Value
+; purpose: to get RCFAE-Value from RCFAE
+(define (interp rcfae ds)
+  (type-case RCFAE rcfae
      [num (n)      (numV n)]
      [add (l r)    (num+ (interp l ds) (interp r ds))]
      [sub (l r)    (num- (interp l ds) (interp r ds))]
+     [mul (l r)    (num* (interp l ds) (interp r ds))]
      [id  (s)     (lookup s ds)]
      [fun (p b)  (closureV p b ds)]
+     [if0 (test-expr then-expr else-expr) (if(numzero? (interp test-expr ds)) (interp then-expr ds) (interp else-expr ds))]
      [app (f a)   (local [(define f-val (strict (interp f ds)))
                           (define a-val (exprV a ds (vector #f)))]
                    (interp (closureV-body f-val)
                            (aSub (closureV-param f-val)
                                  a-val
-                                 (closureV-ds f-val))))]))
+                                 (closureV-ds f-val))))]
+    [rec (bound-id named-expr first-call) (local [(define value-holder (box (numV 628))) (define new-ds (aRecSub bound-id value-holder ds))]
+                                            (begin (set-box! value-holder (interp named-expr new-ds)) (interp first-call new-ds)))]
+        ))
 
-; run: sexp -> LFAE-Value
+; run: sexp -> RCFAE-Value
 ; purpose: to run parse and interp in one queue.
 (define (run sexp ds)
      (interp (parse sexp) ds))

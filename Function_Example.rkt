@@ -12,7 +12,7 @@
   [sub (lhs F1WAE?)(rhs F1WAE?)]
   [with (name symbol?)(named-expr F1WAE?)(body F1WAE?)]
   [id (name symbol?)]
-  [app (ftn symbol?)(arg F1WAE?)]
+  [app (ftn symbol?)(arg F1WAE?)])
 
 
 
@@ -47,7 +47,7 @@
     [(list '- l r) (add (parse l)(parse r))]
     [(list 'with (list i v) e) (with i (parse v) (parse e))]
     [(? symbol?) (id sexp)]
-    [(list f a) (app f (parse a))]
+    [(list f a) (app f (parse a))] ; application
     [else (error 'parse "bad syntax: ~a" sexp)]))
 
 (define (interp f1wae fundefs)
@@ -64,5 +64,7 @@
 
 (subst (app 'fn (with 'y (num 10) (add  (id 'y) (id 'x)))) 'x 1)
 
+(test/exn (interp (parse '{with {x 5} {+ (f 4) 7}}) (list (parse-fd '{deffun {f y} {+ x y}}) ) ) "free identifier") ; free identifier
 
-(subst (fun 'x (id 'y)))
+(interp (parse '{with {x 5} {+ (f x) 7}}) (list (parse-fd '{deffun {f y} {+ 10 y}}) ) )
+

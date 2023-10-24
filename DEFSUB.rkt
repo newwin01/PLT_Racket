@@ -75,7 +75,7 @@
 	                                         fundefs
                                                  (aSub (fundef-arg-name a-fundef)
 	                                                    (interp a fundefs ds)
-		                                            ds)  
+		                                            (mtSub))  
                                      ))]))
 
 (test (interp (parse '{f 1}) (list (parse-fd '{deffun (f x) {+ x 3}})) (mtSub)) 4)
