@@ -89,7 +89,7 @@
 (test (parse '(- 10 20)) (sub (num 10) (num 20)))
 
 
-; interp: FAE DefrdSub -> FAE-Value
+; [contract] interp: FAE DefrdSub -> FAE-Value
 ; purpose: to get FAE-Value from FAE
 ; test: (test (interp (app (fun 'x (add (id 'x) (num 1))) (num 10)) (mtSub)) (numV 11))
 ; (test (interp (app (fun 'y (app (fun 'x (add (id 'y) (id 'x))) (num 10))) (num 10)) (mtSub)) (numV 20))
@@ -109,7 +109,7 @@
 
 (test (interp (app (fun 'x (add (id 'x) (num 1))) (num 10)) (mtSub)) (numV 11))
 (test (interp (app (fun 'y (app (fun 'x (add (id 'y) (id 'x))) (num 10))) (num 10)) (mtSub)) (numV 20))
-; run: sexp -> FAE-Value
+; [contract] run: sexp -> FAE-Value
 ; purpose: to run parse and interp in once.
 ; test: (test (run '{with {y 10} { {fun {x} {+ y x}} 10} } (mtSub)) (numV 20))
 
@@ -124,3 +124,5 @@
 (test (run '{with {x 3} {with {f {fun {y} {+ x y}}} {with {x 6} {f 4}}}} (mtSub)) (numV 7))
 (test (run ' {with {y 5} {+ y {with {z 5} {+ y 2}}}} (mtSub)) (numV 12))
 (test/exn (run ' {with {y 5} {+ z {with {z 5} {+ y 2}}}} (mtSub)) "free identifier")
+
+(parse '{with {x 3} {+ x 3}})
