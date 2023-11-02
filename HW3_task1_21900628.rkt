@@ -95,7 +95,7 @@
 ; (test (interp (app (fun 'y (app (fun 'x (add (id 'y) (id 'x))) (num 10))) (num 10)) (mtSub)) (numV 20))
 (define (interp fae ds)
     (type-case FAE fae
-        [num   (n)      (numV n)]
+       [num   (n)      (numV n)]
        [add    (l r)    (num+ (interp l ds) (interp r ds))]
        [sub    (l r)    (num- (interp l ds) (interp r ds))]
        [id       (s)     (lookup s ds)]
@@ -126,3 +126,5 @@
 (test/exn (run ' {with {y 5} {+ z {with {z 5} {+ y 2}}}} (mtSub)) "free identifier")
 
 (parse '{with {x 3} {+ x 3}})
+
+(run '{+ x x} (mtSub))
