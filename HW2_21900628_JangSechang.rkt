@@ -85,9 +85,15 @@
 
 ;[test]
 (test (parse '(* 1 2)) (add (num 1) (add (num 1) (num 0))))
+
+(test (parse '(* (* 1 2) 4) (add (num 1) (add (num 1) (num 0))))
+
+(test (parse '(* 1 3)) (add (num 1) (add (num 1) (num 0))))
+
 (test (parse '(* -6 3)) (add (num -6) (add (num -6) (add (num -6) (num 0)))))
 (test (parse '(* -7 -2)) (add (num 7) (add (num 7) (num 0))))
 (test (parse '(* 6 0)) (num 0))
+
 
 
 ;[Contract] sexp -> FunDef

@@ -126,5 +126,3 @@
 (test/exn (run ' {with {y 5} {+ z {with {z 5} {+ y 2}}}} (mtSub)) "free identifier")
 
 (parse '{with {x 3} {+ x 3}})
-
-(run '{+ x x} (mtSub))
