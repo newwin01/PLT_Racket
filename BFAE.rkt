@@ -143,3 +143,8 @@
 
 (define (run sexp ds st)
      (interp (parse sexp) ds st))
+
+(run '{with {a 7} a} (mtSub) (mtSto))
+(run '{with {b {newbox 7}}
+          {seqn {setbox b 10}
+                     {openbox b}}} (mtSub) (mtSto))

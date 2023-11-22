@@ -38,7 +38,7 @@
 (define-type BMFAE-Value
   [numV      (n number?)]
   [closureV  (param symbol?) (body BMFAE?) (ds DefrdSub?)]
-  [refclosV  (param symbol?) (body RBMFAE?) (ds DefrdSub?)]
+  [refclosV  (param symbol?) (body BMFAE?) (ds DefrdSub?)]
   [boxV      (address integer?)])
 
 (define (num-op op)
@@ -102,30 +102,31 @@
 
      [id  (s)    (v*s (store-lookup (lookup s ds) st) st)]
      [fun (p b)  (v*s (closureV p b ds) st)]
+     [refun (p b) (v*s (refclosV p b ds) st)]
      [app (f a)  (type-case Value*Store (interp f ds st)
                      [v*s (f-value f-store)
-                                   (type-case RBMFAE-Value f-value
+                            (type-case BMFAE-Value f-value
                                [closureV (c-param c-body c-ds)
-                               (type-case Value*Store (interp a ds f-store)
-                               [v*s (a-value a-store)
-                                    (local ([define new-address (malloc a-store)])
-                                      (interp closureV-body
-                                             (aSub (closureV-param f-value)
-                                                   new-address
-                                                   (closureV-ds f-value))
-                                             (aSto new-address
-                                                   a-value
-                                                   a-store)
+                                         (type-case Value*Store (interp a ds f-store)
+                                           [v*s (a-value a-store)
+                                                (local ([define new-address (malloc a-store)])
+                                                  (interp (closureV-body f-value)
+                                                          (aSub (closureV-param f-value)
+                                                                new-address
+                                                                (closureV-ds f-value))
+                                                          (aSto new-address
+                                                                a-value
+                                                                a-store)))])]
                                                                                                                                            
                                             [refclosV (rc-param rc-body rc-ds)
                                                        (local ([define address (lookup (id-name a) ds)])
                                                          (interp (closureV-body f-value)
                                              (aSub (closureV-param f-value)
-                                                   new-address
-                                                   (closureV-ds f-value))
+                                                  address
+                                                   (closureV-ds f-value)) (f-store)))] 
                                                                                                                                             
                                             [else (error interp "trying to apply a number")]
-                                     )]
+                                     )])]
      [newbox (val)
             (type-case Value*Store (interp val ds st)
               [v*s (vl st1)
@@ -151,7 +152,7 @@
                 (interp-two a b ds st (lambda (v1 v2 st1) (v*s v2 st1)))]
     [setvar (id val-expr)
                  (local [(define a (lookup id ds))]
-                      (type-case Value*Store (interp val-expr ds st)
+                      (type-case Value*Store (interp val-expr ds st) 
                             [v*s (val st)
                                     (v*s val
                                              (aSto a
