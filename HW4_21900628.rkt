@@ -10,6 +10,7 @@
 [num (n number?)]
 [add (lhs KCFAE?) (rhs KCFAE?)]
 [sub (lhs KCFAE?) (rhs KCFAE?)]
+[mul (lhs KCFAE?) (rhs KCFAE?)]
 [id (name symbol?)]
 [fun (param symbol?) (body KCFAE?)]
 [app (fun-expr KCFAE?) (arg-expr KCFAE?)]
@@ -77,6 +78,14 @@
 (test (num- (numV 3) (numV 2)) (numV 1))
 (test (num- (numV 5) (numV 2)) (numV 3))
 
+(define num* (num-op *))
+
+(test (num* (numV 1) (numV 2)) (numV 2))
+(test (num* (numV 2) (numV 3)) (numV 6))
+(test (num* (numV 2) (numV 2)) (numV 4))
+(test (num* (numV 3) (numV 2)) (numV 6))
+(test (num* (numV 5) (numV 2)) (numV 25))
+
 
 ;[contract] lookup: symbol DefrdSub -> KCFAE-Value
 ; purpose: to get a value for the given identifier (symbol)
@@ -115,6 +124,7 @@
         [(? number?)                (num sexp)]
         [(list '+ l r)              (add (parse l) (parse r))]
         [(list '- l r)              (sub (parse l) (parse r))]
+        [(list '* l r)              (mul (parse l) (parse r))]
         [(list 'with (list i v) e) (app (fun i (parse e)) (parse v))]
         [(? symbol?)                (id sexp)]
         [(list 'fun (list p) b)                 (fun p (parse b))]
@@ -170,6 +180,11 @@
                                   (interp r ds
                                           (lambda (rv)
                                             (k (num- lv rv))))))]
+      [mul    (l r)    (interp l ds
+                                (lambda (lv)
+                                  (interp r ds
+                                          (lambda (rv)
+                                            (k (num* lv rv))))))]
        [id       (s)     (k (lookup s ds))]
        [fun     (p b)  (k (closureV (lambda (a-val dyn-k)
                                       (interp b (aSub p a-val ds) dyn-k))))]
@@ -226,33 +241,23 @@
 (test (run ' {with {y 5} {+ y {with {z 5} {+ y 2}}}} (mtSub)) (numV 12))
 (test/exn (run ' {with {y 5} {+ z {with {z 5} {+ y 2}}}} (mtSub)) "free identifier")
 
-(test (run '{withcc k {+ 1 {k 3}}} (mtSub)) (numV 3))
-
 (test (run '{withcc done                                        ;; done = {fun {x}  x}
            {{withcc esc                              ;; esc = {fun {y} {y 3}}
                      {done {+ 1 {withcc k      ;; k = {fun {z} {{done {+ 1 z}} 3}}
                                     {esc k}}}}}
                3}} (mtSub)) (numV 4))
 
-; Withcc Test cases
+; Unique Test cases
 
 (test (run '{withcc k {+ 1 {k 3}}} (mtSub)) (numV 3))
 
-(test (run '{withcc done                                        ;; done = {fun {x}  x}
-           {{withcc esc                              ;; esc = {fun {y} {y 3}}
-                     {done {+ 1 {withcc k      ;; k = {fun {z} {{done {+ 1 z}} 3}}
-                                    {esc k}}}}}
-               3}} (mtSub)) (numV 4))
 (test (run '{{withcc k
                {k {fun {dummy} 3}}}
        1729} (mtSub)) (numV 3))
 
 (test (run '{withcc k {+ 10 {with {x 3} {+ x 5}}}} (mtSub)) (numV 18))
 
-(run '{withcc k {with {x {with {y 10} {withcc k2 {k2 3}}}} {+ x 3}}} (mtSub))
+(test (run '{withcc k {with {x {with {x 10} {withcc k2 {k2 3}}}} {+ x 3}}} (mtSub)) (numV 6))
 
+(test (run '{+ {withcc k {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}}} 10} (mtSub)) (numV 16))
 
-(interp (withcc 'k
-  (app (fun 'x (add (id 'x) (num 5)))
-       (app (fun 'y (withcc 'k2 (app (id 'k2) (num 3))))
-            (num 10)))) (mtSub) (lambda (x) x))
