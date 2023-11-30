@@ -257,7 +257,28 @@
 
 (test (run '{withcc k {+ 10 {with {x 3} {+ x 5}}}} (mtSub)) (numV 18))
 
+(test (run '{withcc k {with {x {with {x 10} {+ x {k 3}}}} {+ x 3}}} (mtSub)) (numV 3))
+
 (test (run '{withcc k {with {x {with {x 10} {withcc k2 {k2 3}}}} {+ x 3}}} (mtSub)) (numV 6))
 
 (test (run '{+ {withcc k {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}}} 10} (mtSub)) (numV 16))
 
+
+;continuation concept
+(define number-producer
+(local ([define resume (box false)])
+(lambda (real-send)
+(local ([define send (lambda (value-to-send)
+(let/cc k
+(begin
+(set-box! resume k)
+(real-send value-to-send))))])
+(if (unbox resume)
+((unbox resume) 'dummy)
+(begin
+(send 1)
+(send 2)
+(send 3)))))))
+
+(define (get producer)
+(let/cc k (producer k)))
