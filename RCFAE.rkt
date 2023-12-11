@@ -143,6 +143,8 @@
 (run '{with {x 3} {with {f {fun {y} {+ x y}}} {with {x 6} {f 4}}}} (mtSub))
 (run ' {with {y 5} {+ y {with {z 5} {+ y 2}}}} (mtSub))
 
+(run '{rec {count {fun {n} {if0 n 0 {+ 1 {count {- n 1}}}}}}
+                  {count 8}} (mtSub))
 
 (run '{with {y 10} {{fun {x} {+ x y}} {+ 24  9}}}  (mtSub))
 (run '{with {z 10} {with {z 5} {{fun {x} {+ x z}} z}} } (mtSub))
@@ -195,37 +197,3 @@
 ;(lookup 'x (aSub 'x (exprV (num 1) (aSub 'f (exprV (fun 'x (add (id 'x) (num 1))) (mtSub) (vector #f)) (mtSub)) (vector #f)) (mtSub)))
 
 ;(run '{{fun {x} x} {+ 1 {fun {y} 2}}} (mtSub)) ;; numV-n: contract violation ... [The interp is terminated with an error]
-
-(parse '{with {mk-rec {fun {body-proc}
-
-                                 {with {fX {fun {fY}
-                                                        {with {f {fun {x}
-                                                                      {{fY fY} x}}}
-                                                                      {body-proc f}}}}
-                                          {fX fX}}}}
-          {with {fac {mk-rec
-                                          {fun {fac}
-                                                  ; Exactly like original fac
-                                                  {fun {n}
-                                                                {if0 n
-                                                                        1
-                                                                        {* n {fac {- n 1}}}}}}}}
-                                    {fac 10}}})
-
- 	
-
-(run '{with {mk-rec {fun {body-proc}
-
-                                 {with {fX {fun {fY}
-                                                        {with {f {fun {x}
-                                                                      {{fY fY} x}}}
-                                                                      {body-proc f}}}}
-                                          {fX fX}}}}
-          {with {fac {mk-rec
-                                          {fun {fac}
-                                                  ; Exactly like original fac
-                                                  {fun {n}
-                                                                {if0 n
-                                                                        1
-                                                                        {* n {fac {- n 1}}}}}}}}
-                                    {fac 10}}} (mtSub))

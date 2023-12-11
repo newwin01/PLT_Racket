@@ -257,10 +257,6 @@
 
 (test (run '{withcc k {+ 1 {k 3}}} (mtSub)) (numV 3))
 
-(test (run '{withcc k {+ 1 {k 2}}} (mtSub)) (numV 2))
-
-(parse '{withcc k {+ 1 {k 2}}})
-
 (test (run '{{withcc k
                {k {fun {dummy} 3}}}
        1729} (mtSub)) (numV 3))
@@ -273,33 +269,6 @@
 
 (test (run '{+ {withcc k {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}}} 10} (mtSub)) (numV 16))
 
-
-
-(test (run '{+ {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}} 10} (mtSub)) (numV 16))
-
-(test (run '{+ {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}} 10} (mtSub)) (numV 16))
-
-(test (run '{+ {withcc k2 {k2 3}} 13} (mtSub)) (numV 16))
-
-
-(run '{withcc done
-              {{withcc esc
-                       {done {+ 1 {withcc k
-                                          {esc k}}}}}
-               3}}
-     (mtSub))
-
-(let/cc done
-  ((let/cc esc
-    (done (+ 1 (let/cc k
-             (esc k))))) 3)
-  )
-
-(test (run '{ {fun {x} {+ {withcc k {k 10}} x}}  10}  (mtSub)) (numV 20))
-
-(run '{ + {{fun {z} { {fun {x} x} 3}} 3} 1} (mtSub))
-
-(run '{ {fun {x} {+ 1 x}} 3} (mtSub))
 
 ;continuation concept
 (define number-producer
@@ -319,5 +288,3 @@
 
 (define (get producer)
 (let/cc k (producer k)))
-
-(test (run '{withcc k {+ 10 {with {x 3} {+ x 5}}}} (mtSub)) (numV 18))

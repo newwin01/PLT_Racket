@@ -118,14 +118,14 @@
                                                                 a-value
                                                                 a-store)))])]
                                                                                                                                            
-                                            [refclosV (rc-param rc-body rc-ds)
-                                                       (local ([define address (lookup (id-name a) ds)])
-                                                         (interp (closureV-body f-value)
-                                             (aSub (closureV-param f-value)
-                                                  address
-                                                   (closureV-ds f-value)) (f-store)))] 
+                              [refclosV (rc-param rc-body rc-ds)
+                                        (local ([define address (lookup (id-name a) ds)])
+                                          (interp (refclosV-body f-value)
+                                                  (aSub (refclosV-param f-value)
+                                                        address
+                                                        (refclosV-ds f-value)) f-store))] 
                                                                                                                                             
-                                            [else (error interp "trying to apply a number")]
+                              [else (error interp "trying to apply a number")]
                                      )])]
      [newbox (val)
             (type-case Value*Store (interp val ds st)
@@ -172,4 +172,56 @@
 (define (run sexp ds st)
      (interp (parse sexp) ds st))
 
+(run '{with {a 3} {setvar a 5}} (mtSub) (mtSto))
+
 (run '{with {a 3} {seqn {{fun {x} {setvar x 5}} a} a}} (mtSub) (mtSto))
+
+(run '{with {swap {fun {x}
+            {fun {y}
+              {with {z x}
+                {seqn {setbox x (openbox y)}
+                           {setbox y (openbox z)}}}}}}
+           {with {a (newbox 10)}
+                       {with {b (newbox 20)}
+                         {seqn {{swap a} b}
+                           (openbox b)}}}} (mtSub) (mtSto))
+
+(parse '{with {swap {fun {x}
+            {fun {y}
+              {with {z x}
+                {seqn {setbox x (openbox y)}
+                           {setbox y (openbox z)}}}}}}
+           {with {a (newbox 10)}
+                       {with {b (newbox 20)}
+                         {seqn {{swap a} b}
+                           (openbox a)}}}})
+
+(run '{with {swap {fun {x}
+            {refun {y}
+              {with {z x}
+                {seqn {setbox x (openbox y)}
+                           {setbox y (openbox z)}}}}}}
+           {with {a (newbox 10)}
+                       {with {b (newbox 20)}
+                         {seqn {{swap a} b}
+                           (openbox b)}}}} (mtSub) (mtSto))
+
+(run '{with {swap {fun {x}
+                       {fun {y}
+                            {with {z x}
+                                  {seqn {setvar x y}
+                                        {setvar y z}}}}}}
+            {with {a 10}
+                  {with {b 20}
+                        {seqn {{swap a} b}
+                              b}}}} (mtSub) (mtSto))
+
+(run '{with {swap {refun {x}
+                       {refun {y}
+                            {with {z x}
+                                  {seqn {setvar x y}
+                                        {setvar y z}}}}}}
+            {with {a 10}
+                  {with {b 20}
+                        {seqn {{swap a} b}
+                              b}}}} (mtSub) (mtSto))

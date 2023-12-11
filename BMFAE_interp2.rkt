@@ -88,18 +88,10 @@
 (define (interp bfae ds st)
   (type-case BFAE bfae
      [num (n)      (v*s (numV n) st)]
-     [add (l r)    (type-case Value*Store (interp l ds st)
-                       [v*s (l-value l-store)
-                            (type-case Value*Store (interp r ds l-store)
-                                [v*s (r-value r-store)
-                                     (v*s (num+ l-value r-value)
-                                          r-store)])])]
-     [sub (l r)    (type-case Value*Store (interp l ds st)
-                       [v*s (l-value l-store)
-                            (type-case Value*Store (interp r ds l-store)
-                                [v*s (r-value r-store)
-                                     (v*s (num- l-value r-value)
-                                          r-store)])])]
+     [add (l r)    (interp-two l r ds st 
+                                             (lambda (v1 v2 st1) (v*s (num+ v1 v2) st1)))]
+     [sub (l r)    (interp-two l r ds st 
+                                             (lambda (v1 v2 st1) (v*s (num- v1 v2) st1)))]
      [id  (s)    (v*s (store-lookup (lookup s ds) st) st)]
      [fun (p b)  (v*s (closureV p b ds) st)]
      [app (f a)  (type-case Value*Store (interp f ds st)
@@ -135,11 +127,16 @@
                     (v*s (store-lookup (boxV-address bx-val)
                                        st1)
                          st1)])]
-     [seqn (a b) ;(interp-two a b ds st (lambda (v1 v2 st1) (v*s v2 st1)))]
-                (type-case Value*Store (interp a ds st)
-                  [v*s (a-value a-store)
-                       (interp b ds a-store)])]
+     [seqn (a b) (interp-two a b ds st (lambda (v1 v2 st1) (v*s v2 st1)))]
+                
     ))
+
+(define (interp-two expr1 expr2 ds st handle)
+  (type-case Value*Store (interp expr1 ds st)
+    [v*s (val1 st2)
+         (type-case Value*Store (interp expr2 ds st2)
+           [v*s (val2 st3)
+                (handle val1 val2 st3)])]))
 
 (define (run sexp ds st)
      (interp (parse sexp) ds st))
@@ -156,7 +153,5 @@
 (run '{with {b {newbox 0}}
     {seqn {setbox b {+ 1 {openbox b}}} ; mutation on b by setbox
                {openbox b}}} (mtSub) (mtSto))
-
-(run '{with {b 1} {+ b 2}} (mtSub) (mtSto))
 
 (run '{+ 7 6} (mtSub) (mtSto))

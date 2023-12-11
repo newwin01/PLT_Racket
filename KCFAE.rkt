@@ -84,7 +84,7 @@
 (test (num* (numV 2) (numV 3)) (numV 6))
 (test (num* (numV 2) (numV 2)) (numV 4))
 (test (num* (numV 3) (numV 2)) (numV 6))
-(test (num* (numV 5) (numV 2)) (numV 10))
+(test (num* (numV 5) (numV 2)) (numV 25))
 
 
 ;[contract] lookup: symbol DefrdSub -> KCFAE-Value
@@ -129,7 +129,6 @@
         [(? symbol?)                (id sexp)]
         [(list 'fun (list p) b)                 (fun p (parse b))]
         [(list f a)                 (app (parse f) (parse a))]
-        [(list 'if0 te th el) (if0 (parse te) (parse th) (parse el))]
         [(list 'withcc idexp kc)       (withcc idexp (parse kc))]
         [else                       (error 'parse "bad syntax: ~a" sexp)]))
 
@@ -159,7 +158,7 @@
 (test (numzero? (numV -1)) #f)
 (test (numzero? (numV -2)) #f)
 
-; [contract] interp: KCFAE DefrdSub lambda(receiver) -> KCFAE-Value
+; [contract] interp: KCFAE DefrdSub -> KCFAE-Value
 ; purpose: to get KCFAE-Value from KCFAE
 ; test: (test (interp (app (fun 'x (add (id 'x) (num 1))) (num 10)) (mtSub)) (numV 11))
 ; (test (interp (app (fun 'y (app (fun 'x (add (id 'y) (id 'x))) (num 10))) (num 10)) (mtSub)) (numV 20))
@@ -200,10 +199,8 @@
                                       ))))]
 
       [if0 (test t f) (interp test ds
-                              (lambda (tv) (if (numzero? (interp test ds k))
-                                             (interp t ds k) (interp f ds k))))] 
-                                              
-           
+                              (lambda (tv) (if(eq? (interp test ds k) (numV 0))
+                                              (interp t ds k) (interp f ds k))))]
       [withcc (cont-var body)
                     (interp body
                             (aSub cont-var
@@ -221,7 +218,7 @@
 (test (interp (app (fun 'x (add (id 'x) (num 3))) (num 3)) (mtSub) (lambda (x) x)) (numV 6))
 
 
-; [contract] run: sexp DefrdSub lambda -> KCFAE-Value
+; [contract] run: sexp DefrdSub -> KCFAE-Value
 ; purpose: to run parse and interp in once.
 ; test: (test (run '{with {y 10} { {fun {x} {+ y x}} 10} } (mtSub)) (numV 20))
 
@@ -239,9 +236,6 @@
 (define (run sexp ds)
      (interp (parse sexp) ds (lambda (x) x)))
 
-(test (run '{if0 0 1 2} (mtSub)) (numV 1))
-(test (run '{if0 1 1 2} (mtSub)) (numV 2)) 
-
 (test (run '{with {y 10} { {fun {x} {+ y x}} 10} } (mtSub)) (numV 20))
 (test (run '{with {x 3} {with {f {fun {y} {+ x y}}} {with {x 6} {f 4}}}} (mtSub)) (numV 7))
 (test (run ' {with {y 5} {+ y {with {z 5} {+ y 2}}}} (mtSub)) (numV 12))
@@ -257,10 +251,6 @@
 
 (test (run '{withcc k {+ 1 {k 3}}} (mtSub)) (numV 3))
 
-(test (run '{withcc k {+ 1 {k 2}}} (mtSub)) (numV 2))
-
-(parse '{withcc k {+ 1 {k 2}}})
-
 (test (run '{{withcc k
                {k {fun {dummy} 3}}}
        1729} (mtSub)) (numV 3))
@@ -273,33 +263,7 @@
 
 (test (run '{+ {withcc k {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}}} 10} (mtSub)) (numV 16))
 
-
-
-(test (run '{+ {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}} 10} (mtSub)) (numV 16))
-
-(test (run '{+ {with {x {with {y 6} {withcc k2 {k2 3}}}} {+ x 3}} 10} (mtSub)) (numV 16))
-
-(test (run '{+ {withcc k2 {k2 3}} 13} (mtSub)) (numV 16))
-
-
-(run '{withcc done
-              {{withcc esc
-                       {done {+ 1 {withcc k
-                                          {esc k}}}}}
-               3}}
-     (mtSub))
-
-(let/cc done
-  ((let/cc esc
-    (done (+ 1 (let/cc k
-             (esc k))))) 3)
-  )
-
-(test (run '{ {fun {x} {+ {withcc k {k 10}} x}}  10}  (mtSub)) (numV 20))
-
-(run '{ + {{fun {z} { {fun {x} x} 3}} 3} 1} (mtSub))
-
-(run '{ {fun {x} {+ 1 x}} 3} (mtSub))
+(test (run '{withcc k {+ 1 {k 2}}} (mtSub)) (numV 2))
 
 ;continuation concept
 (define number-producer
@@ -319,5 +283,3 @@
 
 (define (get producer)
 (let/cc k (producer k)))
-
-(test (run '{withcc k {+ 10 {with {x 3} {+ x 5}}}} (mtSub)) (numV 18))
