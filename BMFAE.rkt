@@ -186,16 +186,6 @@
                          {seqn {{swap a} b}
                            (openbox b)}}}} (mtSub) (mtSto))
 
-(parse '{with {swap {fun {x}
-            {fun {y}
-              {with {z x}
-                {seqn {setbox x (openbox y)}
-                           {setbox y (openbox z)}}}}}}
-           {with {a (newbox 10)}
-                       {with {b (newbox 20)}
-                         {seqn {{swap a} b}
-                           (openbox a)}}}})
-
 (run '{with {swap {fun {x}
             {refun {y}
               {with {z x}
@@ -225,3 +215,16 @@
                   {with {b 20}
                         {seqn {{swap a} b}
                               b}}}} (mtSub) (mtSto))
+
+(parse '{with {swap {fun {x}
+            {fun {y}
+              {with {z x}
+                {seqn {setbox x {openbox y}}
+                           {setbox y {openbox z}}}}}}}
+           {with {a {newbox 10}}
+                       {with {b {newbox 20}}
+                         {seqn {{swap a} b}
+                           {openbox a}}}}})
+(run ' {with {swap {refun {x} {refun {y} {with {z x}
+                                               {seqn {setvar x y} {setvar y z}}}}}}
+             {with {a 10} {with {b 20} {seqn {{swap a} b} b}}}} (mtSub) (mtSto))

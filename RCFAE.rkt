@@ -103,11 +103,10 @@
      [id  (s)     (lookup s ds)]
      [fun (p b)  (closureV p b ds)]
      [if0 (test-expr then-expr else-expr) (if(numzero? (interp test-expr ds)) (interp then-expr ds) (interp else-expr ds))]
-     [app (f a)   (local [(define f-val (strict (interp f ds)))
-                          (define a-val (exprV a ds (vector #f)))]
+     [app (f a)   (local [(define f-val (interp f ds))]
                    (interp (closureV-body f-val)
                            (aSub (closureV-param f-val)
-                                 a-val
+                                 (interp a ds)
                                  (closureV-ds f-val))))]
     [rec (bound-id named-expr first-call) (local [(define value-holder (box (numV 628))) (define new-ds (aRecSub bound-id value-holder ds))]
                                             (begin (set-box! value-holder (interp named-expr new-ds)) (interp first-call new-ds)))]

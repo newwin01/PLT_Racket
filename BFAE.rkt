@@ -160,3 +160,5 @@
 (run '{with {b 1} {+ b 2}} (mtSub) (mtSto))
 
 (run '{+ 7 6} (mtSub) (mtSto))
+
+(run'{with {y 3} {{fun {x} {+ x y}} {+ 24 9 }}} (mtSub) (mtSto))

@@ -94,7 +94,8 @@
                                              (lambda (v1 v2 st1) (v*s (num- v1 v2) st1)))]
      [id  (s)    (v*s (store-lookup (lookup s ds) st) st)]
      [fun (p b)  (v*s (closureV p b ds) st)]
-     [app (f a)  (type-case Value*Store (interp f ds st)
+     [app (f a)  
+          (type-case Value*Store (interp f ds st) 
                      [v*s (f-value f-store)
                           (type-case Value*Store (interp a ds f-store)
                               [v*s (a-value a-store)
