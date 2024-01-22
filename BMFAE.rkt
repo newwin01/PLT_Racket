@@ -228,3 +228,9 @@
 (run ' {with {swap {refun {x} {refun {y} {with {z x}
                                                {seqn {setvar x y} {setvar y z}}}}}}
              {with {a 10} {with {b 20} {seqn {{swap a} b} b}}}} (mtSub) (mtSto))
+
+(run '{openbox {newbox {+ 3 4}}} (mtSub) (mtSto))
+
+(run '{with {a {newbox 3}} {seqn {{fun {x} {setbox x 5}} a} {openbox a}}} (mtSub) (mtSto))
+
+(run '{with {a 3} {seqn {{fun {x} {setvar x 5}} a} a}} (mtSub) (mtSto))

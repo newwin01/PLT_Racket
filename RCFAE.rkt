@@ -102,7 +102,10 @@
      [mul (l r)    (num* (interp l ds) (interp r ds))]
      [id  (s)     (lookup s ds)]
      [fun (p b)  (closureV p b ds)]
-     [if0 (test-expr then-expr else-expr) (if(numzero? (interp test-expr ds)) (interp then-expr ds) (interp else-expr ds))]
+     [if0 (test-expr then-expr else-expr)
+          (if(numzero? (interp test-expr ds))
+             (interp then-expr ds)
+             (interp else-expr ds))]
      [app (f a)   (local [(define f-val (interp f ds))]
                    (interp (closureV-body f-val)
                            (aSub (closureV-param f-val)
